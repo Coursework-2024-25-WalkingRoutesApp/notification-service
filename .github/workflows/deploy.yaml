@@ -1,0 +1,45 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - release
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Build JAR
+        run: ./gradlew clean bootJar -x test
+
+      - name: Verify JAR exists
+        run: ls -la build/libs/
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          load: true
+          tags: user/notification-service:latest
+          build-args: |
+            MAIL_SENDER_USERNAME=${{ secrets.MAIL_SENDER_USERNAME }}
+            MAIL_SENDER_PASSWORD=${{ secrets.MAIL_SENDER_PASSWORD }}
+            SERVER_PORT=${{ secrets.SERVER_PORT }}
+
+      - name: Deploy Docker container
+        run: |
+          docker run -d --network walking_routes_network --name notification-service \
+            -e MAIL_SENDER_USERNAME=${{ secrets.MAIL_SENDER_USERNAME }} \
+            -e MAIL_SENDER_PASSWORD=${{ secrets.MAIL_SENDER_PASSWORD }} \
+            -p ${{ secrets.SERVER_PORT_PUBLIC }}:${{ secrets.SERVER_PORT }} \
+            user/notification-service:latest
