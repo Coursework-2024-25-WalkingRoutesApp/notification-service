@@ -1,9 +1,6 @@
 name: Deploy
 
 on:
-  push:
-    branches:
-      - release
   workflow_dispatch:
 
 jobs:
@@ -11,8 +8,17 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Read version from build.gradle.kts
+        run: echo "VERSION=$(./gradlew -q properties | grep '^version:' | awk '{print $2}')" >> $GITHUB_ENV
+
       - name: Build JAR
-        run: ./gradlew clean bootJar -x test
+        run: ./gradlew clean bootJar -x test -P version=${{ env.VERSION }}
 
       - name: Verify JAR exists
         run: ls -la build/libs/
@@ -32,14 +38,18 @@ jobs:
           load: true
           tags: user/notification-service:latest
           build-args: |
+            VERSION=${{ env.VERSION }}
             MAIL_SENDER_USERNAME=${{ secrets.MAIL_SENDER_USERNAME }}
             MAIL_SENDER_PASSWORD=${{ secrets.MAIL_SENDER_PASSWORD }}
             SERVER_PORT=${{ secrets.SERVER_PORT }}
 
+      - name: Stop and remove existing container (if any)
+        run: docker rm -f notification-service || true
+
       - name: Deploy Docker container
         run: |
           docker run -d --network walking_routes_network --name notification-service \
-            -e MAIL_SENDER_USERNAME=${{ secrets.MAIL_SENDER_USERNAME }} \
-            -e MAIL_SENDER_PASSWORD=${{ secrets.MAIL_SENDER_PASSWORD }} \
-            -p ${{ secrets.SERVER_PORT_PUBLIC }}:${{ secrets.SERVER_PORT }} \
+            -e "MAIL_SENDER_USERNAME=${{ secrets.MAIL_SENDER_USERNAME }}" \
+            -e "MAIL_SENDER_PASSWORD=${{ secrets.MAIL_SENDER_PASSWORD }}" \
+            -p "${{ secrets.SERVER_PORT_PUBLIC }}:${{ secrets.SERVER_PORT }}" \
             user/notification-service:latest
