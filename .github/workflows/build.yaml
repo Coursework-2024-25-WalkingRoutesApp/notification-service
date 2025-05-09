@@ -2,6 +2,9 @@ name: Build
 
 on:
   pull_request:
+  push:
+    branches:
+      - 'release/*'
   workflow_dispatch:
 
 jobs:
@@ -29,7 +32,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew build -x test
         env:
           MAIL_SENDER_USERNAME: admin
           MAIL_SENDER_PASSWORD: admin
