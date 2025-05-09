@@ -1,8 +1,17 @@
 package ru.hse.coursework.notification_service.dto
 
+import com.fasterxml.jackson.annotation.JsonProperty
+
 data class EmailRequest(
+    @JsonProperty("subject")
     val subject: String,
+
+    @JsonProperty("targetEmail")
     val targetEmail: String,
+
+    @JsonProperty("text")
     val text: String,
-    val name: String?
+
+    @JsonProperty("name")
+    val name: String? = null
 )
