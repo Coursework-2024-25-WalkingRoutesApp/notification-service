@@ -18,7 +18,7 @@ spring:
   kafka:
     topic:
       verify-user-email: verify-user-email
-    bootstrap-servers: ${DEV_ENV_HOST_KAFKA }:${DEV_ENV_PORT_KAFKA}
+    bootstrap-servers: ${DEV_ENV_HOST_KAFKA}:${DEV_ENV_PORT_KAFKA}
     consumer:
       group-id: notification-service
       auto-offset-reset: earliest
@@ -32,3 +32,16 @@ spring:
 
 server:
   port: 8083
+
+management:
+  endpoints.web.exposure.include: 'prometheus, health, info, metrics'
+  metrics:
+    enable:
+      all: true
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
